@@ -1,49 +1,71 @@
 # AI Project Autopilot / Prompt-to-PR System
 
-Repository ini sekarang diarahkan menjadi fondasi **AI Project Autopilot**, bukan marketplace manual.
+Repository ini adalah fondasi **AI Project Autopilot**, yaitu command center untuk proyek software.
 
-Tujuan produk adalah membuat command center untuk proyek software yang bisa mengubah ide kasar menjadi:
+Produk ini membantu mengubah ide kasar menjadi:
 
 - project brief
 - sprint plan
 - task teknis
 - generated execution prompt
-- report sederhana
+- GitHub branch plan
+- draft PR plan
+- CI status
+- auto-fix attempt maksimal 3 kali
+- QA report
+- release plan
 - approval gate untuk keputusan berisiko
 
-Sprint saat ini: **AUTO-1: Planning Autopilot Foundation**.
+## Status Saat Ini
 
-## Fokus Sprint AUTO-1
+Sprint yang sudah dibuat dalam foundation ini:
 
-Sprint AUTO-1 membangun otak perencana dan prompt generator terlebih dahulu.
+### AUTO-1: Planning Autopilot Foundation
 
-Yang sudah menjadi scope:
+- Create project dari brief kasar.
+- Simpan data project.
+- Generate project brief.
+- Generate sprint plan.
+- Generate task list.
+- Generate execution prompt.
+- Dashboard awal.
+- Status task.
+- Report sederhana.
+- Automated test.
+- GitHub Actions CI.
 
-1. Create project dari brief kasar.
-2. Simpan data project.
-3. Generate project brief.
-4. Generate sprint plan dari brief.
-5. Generate task list dari sprint.
-6. Generate execution prompt untuk tiap task.
-7. Dashboard sederhana untuk melihat project, sprint, task, dan prompt.
-8. Status task.
-9. Report sederhana.
-10. Automated test.
-11. GitHub Actions CI.
+### AUTO-2: GitHub Autopilot Foundation
 
-Yang belum masuk AUTO-1:
+- Generate branch name dari task.
+- Simpan branch plan ke task.
+- Generate draft pull request URL foundation.
+- Simpan PR status ke task.
+- Simpan CI status dasar.
 
-- auto coding ke repository target
-- create branch target repo secara otomatis dari dashboard
-- open PR otomatis dari dashboard
-- auto-fix CI
-- Playwright UI smoke test
-- deploy staging/production
-- merge ke main otomatis
+Catatan: AUTO-2 di dalam app masih berupa orchestration foundation. Eksekusi nyata GitHub dari dashboard membutuhkan token/connector yang aman dan belum ditanam ke app.
+
+### AUTO-3: Auto Fix CI Foundation
+
+- CI failure bisa dicatat.
+- Error summary bisa disimpan.
+- Auto-fix attempt bisa dibuat.
+- Batas auto-fix maksimal 3 kali.
+- Jika masih gagal setelah 3 kali, task menjadi failed.
+
+### AUTO-4: Auto QA Foundation
+
+- QA report bisa dibuat dari task.
+- Report menyimpan API health check, dashboard render check, task prompt check, GitHub/CI widget check, dan approval gate check.
+- Screenshot masih placeholder sampai Playwright ditambahkan.
+
+### AUTO-5: Release Autopilot Foundation
+
+- Release plan bisa dibuat dari project.
+- Production deploy selalu masuk approval gate.
+- Release note foundation tersedia.
+- Deploy production nyata belum dijalankan dari app.
 
 ## Stack
-
-Stack mengikuti repository yang sudah ada:
 
 - Node.js
 - Express
@@ -79,9 +101,78 @@ npm test
 npm run ci
 ```
 
-`npm run ci` akan menjalankan seed lalu automated test.
+`npm run ci` menjalankan seed lalu automated test.
 
-## Data Model Awal
+## Dashboard
+
+Dashboard memiliki bagian:
+
+1. Project
+2. Sprint
+3. Task
+4. Generated Prompt
+5. GitHub Branch
+6. Pull Request
+7. CI Status
+8. Error Log
+9. Auto Fix Attempt
+10. Report
+11. Approval Button
+
+Dashboard juga punya tombol:
+
+- AUTO-2 Plan Branch
+- AUTO-2 Open Draft PR
+- AUTO-2 Mark CI Success
+- AUTO-3 Mark CI Failed
+- AUTO-3 Auto Fix Attempt
+- AUTO-4 QA Report
+- AUTO-5 Release Plan
+- Final Report
+
+## API Ringkas
+
+### Planning
+
+```http
+POST /api/projects
+GET /api/projects
+GET /api/projects/:projectId
+GET /api/projects/:projectId/report
+GET /api/projects/:projectId/final-report
+GET /api/tasks/:taskId/prompt
+PATCH /api/tasks/:taskId/status
+```
+
+### GitHub Autopilot Foundation
+
+```http
+POST /api/tasks/:taskId/github/plan
+POST /api/tasks/:taskId/github/open-pr
+```
+
+### CI Monitor dan Auto Fix
+
+```http
+POST /api/tasks/:taskId/ci/result
+POST /api/tasks/:taskId/auto-fix
+```
+
+### QA dan Release
+
+```http
+POST /api/tasks/:taskId/qa-report
+POST /api/projects/:projectId/release-plan
+```
+
+### Approval
+
+```http
+POST /api/tasks/:taskId/approvals
+PATCH /api/approvals/:approvalId
+```
+
+## Data Model
 
 ### Project
 
@@ -143,33 +234,46 @@ npm run ci
 - approvedAt
 - rejectedAt
 
-## Status Task
+### GitHub Run
 
-Status yang dikenali sistem:
+- id
+- projectId
+- taskId
+- repository
+- mainBranch
+- branchName
+- pullRequestUrl
+- status
+- commitMessage
+- plannedFiles
+- safeAutomation
+- approvalRequiredFor
+- maxAutoFixAttempts
+- createdAt
+- updatedAt
 
-- draft
-- planned
-- prompt_ready
-- branch_created
-- coding
-- pr_opened
-- ci_running
-- ci_failed
-- auto_fixing
-- ready_for_review
-- waiting_approval
-- merged
-- blocked
-- failed
+### QA Report
 
-Untuk Sprint AUTO-1, status yang paling aktif adalah:
+- id
+- projectId
+- taskId
+- status
+- runner
+- checks
+- screenshots
+- createdAt
 
-- draft
-- planned
-- prompt_ready
-- ready_for_review
-- blocked
-- failed
+### Release Plan
+
+- id
+- projectId
+- status
+- environment
+- approvalType
+- steps
+- releaseNote
+- createdAt
+- updatedAt
 
 ## Approval Gate
 
@@ -184,133 +288,24 @@ Sistem wajib meminta approval user sebelum:
 7. Mengubah environment/secrets.
 8. Menjalankan operasi yang bisa memengaruhi data user.
 
-Pada Sprint AUTO-1, approval masih dipakai sebagai fondasi data dan tombol placeholder di dashboard. Sistem belum melakukan auto-merge, deploy, atau operasi berisiko.
+## Batasan Saat Ini
 
-## API Ringkas
+- App belum menyimpan GitHub token.
+- App belum melakukan commit/PR nyata langsung dari dashboard.
+- Auto-fix masih foundation model, belum patch file otomatis dari error log nyata.
+- QA screenshot masih placeholder sampai Playwright ditambahkan.
+- Production release hanya dibuat sebagai plan dan approval gate, belum deploy nyata.
 
-### Create Project
+## Langkah Berikutnya
 
-```http
-POST /api/projects
-Content-Type: application/json
-```
+Tahap berikutnya adalah menyambungkan dashboard ke GitHub connector yang aman, lalu membuat eksekusi nyata:
 
-Body:
-
-```json
-{
-  "name": "AI Project Autopilot",
-  "repository": "gioginanjar2212/belajar-github-actions",
-  "mainBranch": "main",
-  "roughBrief": "Buat command center untuk mengubah ide kasar menjadi project brief, sprint plan, task, prompt, report, dan approval gate."
-}
-```
-
-Response berisi project, sprint, task, generated prompt, dan URL report.
-
-### List Projects
-
-```http
-GET /api/projects
-```
-
-### Project Detail
-
-```http
-GET /api/projects/:projectId
-```
-
-### Task Prompt
-
-```http
-GET /api/tasks/:taskId/prompt
-```
-
-### Update Task Status
-
-```http
-PATCH /api/tasks/:taskId/status
-```
-
-Body:
-
-```json
-{
-  "status": "blocked",
-  "errorSummary": "Menunggu approval scope."
-}
-```
-
-### Request Approval
-
-```http
-POST /api/tasks/:taskId/approvals
-```
-
-Body:
-
-```json
-{
-  "type": "merge_main",
-  "requestedReason": "Merge ke main wajib approval user."
-}
-```
-
-### Project Report
-
-```http
-GET /api/projects/:projectId/report
-```
-
-## Dashboard Minimal
-
-Dashboard menampilkan 11 bagian minimal:
-
-1. Project
-2. Sprint
-3. Task
-4. Generated Prompt
-5. GitHub Branch
-6. Pull Request
-7. CI Status
-8. Error Log
-9. Auto Fix Attempt
-10. Report
-11. Approval Button
-
-Untuk Sprint AUTO-1, GitHub Branch, Pull Request, CI Status, Error Log, dan Auto Fix Attempt masih placeholder karena eksekusi GitHub masuk Sprint AUTO-2.
-
-## Roadmap Lanjut
-
-### AUTO-2: GitHub Autopilot
-
-- create branch
-- create/update file
-- commit
-- open draft PR
-- trigger/read GitHub Actions
-
-### AUTO-3: Auto Fix CI
-
-- ambil log CI gagal
-- analisis error
-- patch otomatis
-- commit ulang
-- maksimal 3 kali auto-fix
-- stop dan report jika masih gagal
-
-### AUTO-4: Auto QA
-
-- API test
-- UI smoke test
-- Playwright
-- screenshot
-- QA report
-
-### AUTO-5: Release Autopilot
-
-- deploy staging
-- test staging
-- approval production
-- deploy production
-- release note
+1. Create branch nyata.
+2. Create/update file nyata.
+3. Commit nyata.
+4. Open draft PR nyata.
+5. Read GitHub Actions status nyata.
+6. Ambil log CI gagal.
+7. Patch otomatis maksimal 3 kali.
+8. Jalankan Playwright smoke test.
+9. Buat release note final.
