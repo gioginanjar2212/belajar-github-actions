@@ -5,7 +5,8 @@ Repository ini dipakai untuk praktik membangun sistem marketplace multi-vendor y
 Target produk:
 
 - Seller/UMKM bisa daftar dan membuka toko.
-- Seller bisa menambahkan produk.
+- Admin bisa approve seller sebelum seller berjualan.
+- Seller bisa login dan menambahkan produk.
 - Customer bisa melihat produk dan membuat checkout simulasi.
 - Sistem punya pondasi integrasi ongkir, payment gateway, COD, pixel ads, dan chat.
 - GitHub Actions menjalankan pemeriksaan otomatis setiap ada perubahan.
@@ -30,6 +31,22 @@ Health check:
 http://localhost:3000/health
 ```
 
+## Akun Demo
+
+```text
+Admin
+email: admin@example.com
+password: admin123
+
+Seller
+email: seller@example.com
+password: seller123
+
+Customer
+email: customer@example.com
+password: customer123
+```
+
 ## Script Penting
 
 ```bash
@@ -51,4 +68,17 @@ Sprint 1 fokus ke fondasi:
 - tracking pixel event logger
 - GitHub Actions CI
 
-Catatan: ini belum production-ready, tetapi strukturnya diarahkan ke sistem nyata. Setelah CI hijau, fondasi ini bisa kita naikkan ke database PostgreSQL, auth yang aman, payment gateway sandbox, dan shipping provider API.
+## Status Sprint 2
+
+Sprint 2 fokus ke akun dan peran:
+
+- Customer register
+- Seller register
+- Login sederhana
+- Role customer, seller, admin
+- Admin approve seller
+- Seller dashboard
+- Produk hanya bisa dibuat seller approved
+- Order seller dashboard
+
+Catatan: ini belum production-ready, tetapi strukturnya diarahkan ke sistem nyata. Setelah CI hijau, fondasi ini bisa dinaikkan ke PostgreSQL, auth aman, payment gateway sandbox, dan shipping provider API.

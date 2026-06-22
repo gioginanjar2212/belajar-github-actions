@@ -5,6 +5,7 @@ import { ensureDb, readDb, writeDb } from './store.js';
 import { calculateShippingRate, createShipment } from './services/shipping.js';
 import { createPaymentIntent } from './services/payment.js';
 import { recordPixelEvent } from './services/pixels.js';
+import { createUser, loginUser, requireRole, safeUser } from './auth.js';
 
 ensureDb();
 
@@ -15,23 +16,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'umkm-marketplace-foundation' });
-});
+function registerSeller(req, res) {
+  const { storeName, ownerName, email, password, originCity } = req.body;
 
-app.post('/api/sellers/register', (req, res) => {
-  const { name, ownerName, email, originCity } = req.body;
-
-  if (!name || !ownerName || !email || !originCity) {
-    return res.status(422).json({ message: 'name, ownerName, email, dan originCity wajib diisi' });
+  if (!storeName || !ownerName || !email || !password || !originCity) {
+    return res.status(422).json({ message: 'storeName, ownerName, email, password, dan originCity wajib diisi' });
   }
 
   const db = readDb();
+  const normalizedEmail = email.toLowerCase().trim();
+  const existingSeller = db.sellers.find((seller) => seller.email === normalizedEmail);
+
+  if (existingSeller) {
+    return res.status(422).json({ message: 'seller email sudah terdaftar' });
+  }
+
   const seller = {
     id: `seller_${nanoid(10)}`,
-    name,
+    name: storeName,
     ownerName,
-    email,
+    email: normalizedEmail,
     originCity,
     status: 'pending_approval',
     codEnabled: false,
@@ -46,12 +50,102 @@ app.post('/api/sellers/register', (req, res) => {
   db.sellers.push(seller);
   writeDb(db);
 
-  res.status(201).json({ seller });
+  try {
+    const user = createUser({ name: ownerName, email: normalizedEmail, password, role: 'seller', sellerId: seller.id });
+    return res.status(201).json({ seller, user });
+  } catch (error) {
+    const rollbackDb = readDb();
+    rollbackDb.sellers = rollbackDb.sellers.filter((item) => item.id !== seller.id);
+    writeDb(rollbackDb);
+    return res.status(422).json({ message: error.message });
+  }
+}
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'umkm-marketplace-foundation' });
+});
+
+app.post('/api/auth/register/customer', (req, res) => {
+  try {
+    const user = createUser({ ...req.body, role: 'customer' });
+    res.status(201).json({ user });
+  } catch (error) {
+    res.status(422).json({ message: error.message });
+  }
+});
+
+app.post('/api/auth/register/seller', registerSeller);
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const session = loginUser(req.body);
+    res.json(session);
+  } catch (error) {
+    res.status(401).json({ message: error.message });
+  }
+});
+
+app.get('/api/me', (req, res) => {
+  const user = requireRole(req, res, ['customer', 'seller', 'admin']);
+  if (!user) return;
+
+  res.json({ user: safeUser(user) });
+});
+
+app.post('/api/sellers/register', (req, res) => {
+  req.body.storeName = req.body.storeName || req.body.name;
+  return registerSeller(req, res);
 });
 
 app.get('/api/sellers', (req, res) => {
   const db = readDb();
+  const publicSellers = db.sellers.filter((seller) => seller.status === 'approved');
+  res.json({ sellers: publicSellers });
+});
+
+app.get('/api/admin/sellers', (req, res) => {
+  const admin = requireRole(req, res, 'admin');
+  if (!admin) return;
+
+  const db = readDb();
   res.json({ sellers: db.sellers });
+});
+
+app.patch('/api/admin/sellers/:sellerId/approve', (req, res) => {
+  const admin = requireRole(req, res, 'admin');
+  if (!admin) return;
+
+  const db = readDb();
+  const seller = db.sellers.find((item) => item.id === req.params.sellerId);
+
+  if (!seller) {
+    return res.status(404).json({ message: 'Seller tidak ditemukan' });
+  }
+
+  seller.status = 'approved';
+  seller.codEnabled = Boolean(req.body.codEnabled ?? seller.codEnabled);
+  seller.approvedAt = new Date().toISOString();
+  seller.approvedBy = admin.id;
+  writeDb(db);
+
+  res.json({ seller });
+});
+
+app.get('/api/seller/dashboard', (req, res) => {
+  const user = requireRole(req, res, 'seller');
+  if (!user) return;
+
+  const db = readDb();
+  const seller = db.sellers.find((item) => item.id === user.sellerId);
+
+  if (!seller) {
+    return res.status(404).json({ message: 'Seller tidak ditemukan' });
+  }
+
+  const products = db.products.filter((product) => product.sellerId === seller.id);
+  const orders = db.orders.filter((order) => order.sellerId === seller.id);
+
+  res.json({ seller, products, orders });
 });
 
 app.get('/api/products', (req, res) => {
@@ -61,22 +155,29 @@ app.get('/api/products', (req, res) => {
 });
 
 app.post('/api/products', (req, res) => {
-  const { sellerId, name, category, price, stock, weightGram } = req.body;
+  const user = requireRole(req, res, 'seller');
+  if (!user) return;
 
-  if (!sellerId || !name || !category || !price || stock === undefined || !weightGram) {
-    return res.status(422).json({ message: 'sellerId, name, category, price, stock, dan weightGram wajib diisi' });
+  const { name, category, price, stock, weightGram } = req.body;
+
+  if (!name || !category || !price || stock === undefined || !weightGram) {
+    return res.status(422).json({ message: 'name, category, price, stock, dan weightGram wajib diisi' });
   }
 
   const db = readDb();
-  const seller = db.sellers.find((item) => item.id === sellerId);
+  const seller = db.sellers.find((item) => item.id === user.sellerId);
 
   if (!seller) {
     return res.status(404).json({ message: 'Seller tidak ditemukan' });
   }
 
+  if (seller.status !== 'approved') {
+    return res.status(403).json({ message: 'Seller belum disetujui admin' });
+  }
+
   const product = {
     id: `prod_${nanoid(10)}`,
-    sellerId,
+    sellerId: seller.id,
     name,
     category,
     price: Number(price),
@@ -187,8 +288,16 @@ app.post('/api/checkout', (req, res) => {
 });
 
 app.get('/api/orders', (req, res) => {
+  const user = requireRole(req, res, ['seller', 'admin']);
+  if (!user) return;
+
   const db = readDb();
-  res.json({ orders: db.orders });
+
+  if (user.role === 'admin') {
+    return res.json({ orders: db.orders });
+  }
+
+  res.json({ orders: db.orders.filter((order) => order.sellerId === user.sellerId) });
 });
 
 app.post('/api/chat/messages', (req, res) => {
