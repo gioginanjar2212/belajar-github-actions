@@ -42,7 +42,7 @@ Sprint yang sudah dibuat dalam foundation ini:
 - Simpan PR status ke task.
 - Simpan CI status dasar.
 
-Catatan: AUTO-2 di dalam app masih berupa orchestration foundation. Eksekusi nyata GitHub dari dashboard membutuhkan token/connector yang aman dan belum ditanam ke app.
+Catatan: AUTO-2 di dalam app masih berupa orchestration foundation. Eksekusi nyata GitHub dari dashboard membutuhkan connector yang aman dan belum ditanam ke app.
 
 ### AUTO-3: Auto Fix CI Foundation
 
@@ -290,7 +290,6 @@ Sistem wajib meminta approval user sebelum:
 
 ## Batasan Saat Ini
 
-- App belum menyimpan GitHub token.
 - App belum melakukan commit/PR nyata langsung dari dashboard.
 - Auto-fix masih foundation model, belum patch file otomatis dari error log nyata.
 - QA screenshot masih placeholder sampai Playwright ditambahkan.
@@ -298,7 +297,7 @@ Sistem wajib meminta approval user sebelum:
 
 ## Langkah Berikutnya
 
-Tahap berikutnya adalah menyambungkan dashboard ke GitHub connector yang aman, lalu membuat eksekusi nyata:
+Tahap berikutnya adalah menyambungkan dashboard ke connector yang aman, lalu membuat eksekusi nyata:
 
 1. Create branch nyata.
 2. Create/update file nyata.
