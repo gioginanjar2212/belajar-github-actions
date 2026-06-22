@@ -7,8 +7,8 @@ Target produk:
 - Seller/UMKM bisa daftar dan membuka toko.
 - Admin bisa approve seller sebelum seller berjualan.
 - Seller bisa login dan menambahkan produk.
-- Customer bisa melihat produk dan membuat checkout simulasi.
-- Sistem punya pondasi integrasi ongkir, payment gateway, COD, pixel ads, dan chat.
+- Customer bisa melihat produk, memilih varian, menyimpan alamat, dan membuat checkout simulasi.
+- Sistem punya pondasi integrasi ongkir, payment gateway, COD, pixel ads, chat, dan order lifecycle.
 - GitHub Actions menjalankan pemeriksaan otomatis setiap ada perubahan.
 
 ## Jalankan Lokal
@@ -80,5 +80,17 @@ Sprint 2 fokus ke akun dan peran:
 - Seller dashboard
 - Produk hanya bisa dibuat seller approved
 - Order seller dashboard
+
+## Status Sprint 3
+
+Sprint 3 fokus ke transaksi:
+
+- Varian produk
+- Address book customer
+- Checkout memakai addressId dan variantId
+- Payment event simulasi
+- Order status logs
+- Seller update order status
+- Customer order tracking
 
 Catatan: ini belum production-ready, tetapi strukturnya diarahkan ke sistem nyata. Setelah CI hijau, fondasi ini bisa dinaikkan ke PostgreSQL, auth aman, payment gateway sandbox, dan shipping provider API.
