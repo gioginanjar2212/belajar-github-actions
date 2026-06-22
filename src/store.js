@@ -5,6 +5,7 @@ const dataDir = path.join(process.cwd(), 'data');
 const dbPath = path.join(dataDir, 'marketplace.json');
 
 const emptyDb = {
+  users: [],
   sellers: [],
   customers: [],
   products: [],
@@ -12,6 +13,20 @@ const emptyDb = {
   chats: [],
   pixelEvents: []
 };
+
+function normalizeDb(db) {
+  return {
+    ...emptyDb,
+    ...db,
+    users: db.users || [],
+    sellers: db.sellers || [],
+    customers: db.customers || [],
+    products: db.products || [],
+    orders: db.orders || [],
+    chats: db.chats || [],
+    pixelEvents: db.pixelEvents || []
+  };
+}
 
 export function ensureDb() {
   if (!fs.existsSync(dataDir)) {
@@ -25,12 +40,12 @@ export function ensureDb() {
 
 export function readDb() {
   ensureDb();
-  return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+  return normalizeDb(JSON.parse(fs.readFileSync(dbPath, 'utf8')));
 }
 
 export function writeDb(db) {
   ensureDb();
-  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  fs.writeFileSync(dbPath, JSON.stringify(normalizeDb(db), null, 2));
   return db;
 }
 
@@ -39,6 +54,6 @@ export function resetDb(seedData = emptyDb) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  fs.writeFileSync(dbPath, JSON.stringify(seedData, null, 2));
+  fs.writeFileSync(dbPath, JSON.stringify(normalizeDb(seedData), null, 2));
   return seedData;
 }
