@@ -8,8 +8,10 @@ const emptyDb = {
   users: [],
   sellers: [],
   customers: [],
+  addresses: [],
   products: [],
   orders: [],
+  paymentEvents: [],
   chats: [],
   pixelEvents: []
 };
@@ -21,8 +23,10 @@ function normalizeDb(db) {
     users: db.users || [],
     sellers: db.sellers || [],
     customers: db.customers || [],
+    addresses: db.addresses || [],
     products: db.products || [],
     orders: db.orders || [],
+    paymentEvents: db.paymentEvents || [],
     chats: db.chats || [],
     pixelEvents: db.pixelEvents || []
   };
