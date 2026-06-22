@@ -1,6 +1,38 @@
 import { resetDb } from './store.js';
 
 resetDb({
+  users: [
+    {
+      id: 'user_admin_1',
+      name: 'Admin Marketplace',
+      email: 'admin@example.com',
+      password: 'admin123',
+      role: 'admin',
+      sellerId: null,
+      active: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'user_seller_1',
+      name: 'Demo Seller',
+      email: 'seller@example.com',
+      password: 'seller123',
+      role: 'seller',
+      sellerId: 'seller_demo_1',
+      active: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'user_customer_1',
+      name: 'Customer Demo',
+      email: 'customer@example.com',
+      password: 'customer123',
+      role: 'customer',
+      sellerId: null,
+      active: true,
+      createdAt: new Date().toISOString()
+    }
+  ],
   sellers: [
     {
       id: 'seller_demo_1',
