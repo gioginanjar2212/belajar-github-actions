@@ -7,10 +7,14 @@
   <style>
     body { margin: 0; font-family: Arial, sans-serif; background: #f7f7f7; color: #222; }
     header { background: #111827; color: #fff; padding: 28px 18px; }
-    main { max-width: 980px; margin: 0 auto; padding: 18px; }
+    main { max-width: 1080px; margin: 0 auto; padding: 18px; }
     .card { background: #fff; border-radius: 16px; padding: 18px; margin: 14px 0; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
     .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
     button { background: #f97316; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #111827; }
+    input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; margin: 5px 0 10px; }
+    label { font-size: 13px; color: #555; font-weight: 700; }
     pre { background: #111827; color: #e5e7eb; padding: 14px; border-radius: 12px; overflow: auto; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
   </style>
@@ -18,14 +22,48 @@
 <body>
   <header>
     <h1>UMKM Marketplace Foundation</h1>
-    <p>Fondasi marketplace multi-vendor: seller, produk, ongkir, payment, COD, chat, pixel event.</p>
+    <p>Fondasi marketplace multi-vendor: customer, seller, admin, produk, order, ongkir, payment, COD, chat, pixel event.</p>
   </header>
 
   <main>
     <section class="card">
+      <h2>Akun Demo</h2>
+      <div class="grid">
+        <div>
+          <label>Email</label>
+          <input id="email" value="seller@example.com" />
+          <label>Password</label>
+          <input id="password" value="seller123" type="password" />
+          <div class="row">
+            <button onclick="login()">Login</button>
+            <button class="secondary" onclick="loginAsAdmin()">Login Admin</button>
+          </div>
+        </div>
+        <pre id="session">Belum login.</pre>
+      </div>
+    </section>
+
+    <section class="card">
       <h2>Produk Aktif</h2>
       <button onclick="loadProducts()">Muat Produk</button>
       <div id="products" class="grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Seller Dashboard</h2>
+      <p>Login sebagai seller, lalu buka dashboard.</p>
+      <div class="row">
+        <button onclick="loadSellerDashboard()">Buka Dashboard Seller</button>
+        <button class="secondary" onclick="createProduct()">Tambah Produk Demo</button>
+      </div>
+      <pre id="seller-dashboard">Belum ada data.</pre>
+    </section>
+
+    <section class="card">
+      <h2>Admin Dashboard</h2>
+      <p>Login sebagai admin untuk melihat semua seller.</p>
+      <button onclick="loadAdminSellers()">Lihat Seller</button>
+      <pre id="admin-dashboard">Belum ada data.</pre>
     </section>
 
     <section class="card">
@@ -37,9 +75,37 @@
   </main>
 
   <script>
+    let token = '';
+
+    async function api(path, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const response = await fetch(path, { ...options, headers });
+      return response.json();
+    }
+
+    async function login() {
+      const data = await api('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value
+        })
+      });
+
+      token = data.token || '';
+      document.getElementById('session').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function loginAsAdmin() {
+      document.getElementById('email').value = 'admin@example.com';
+      document.getElementById('password').value = 'admin123';
+      await login();
+    }
+
     async function loadProducts() {
-      const response = await fetch('/api/products');
-      const data = await response.json();
+      const data = await api('/api/products');
       document.getElementById('products').innerHTML = data.products.map(product => `
         <article class="card">
           <h3>${product.name}</h3>
@@ -50,13 +116,38 @@
       `).join('');
     }
 
+    async function loadSellerDashboard() {
+      const data = await api('/api/seller/dashboard');
+      document.getElementById('seller-dashboard').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function loadAdminSellers() {
+      const data = await api('/api/admin/sellers');
+      document.getElementById('admin-dashboard').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function createProduct() {
+      const data = await api('/api/products', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Produk Baru dari Seller',
+          category: 'Demo',
+          price: 99000,
+          stock: 12,
+          weightGram: 300
+        })
+      });
+
+      document.getElementById('seller-dashboard').textContent = JSON.stringify(data, null, 2);
+      loadProducts();
+    }
+
     async function checkout() {
-      const products = await fetch('/api/products').then(res => res.json());
+      const products = await api('/api/products');
       const firstProduct = products.products[0];
 
-      const response = await fetch('/api/checkout', {
+      const data = await api('/api/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: 'Customer Demo',
           customerPhone: '081234567890',
@@ -66,7 +157,6 @@
         })
       });
 
-      const data = await response.json();
       document.getElementById('result').textContent = JSON.stringify(data, null, 2);
       loadProducts();
     }
