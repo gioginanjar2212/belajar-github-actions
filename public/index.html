@@ -1,167 +1,254 @@
 <!doctype html>
 <html lang="id">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UMKM Marketplace Foundation</title>
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #f7f7f7; color: #222; }
-    header { background: #111827; color: #fff; padding: 28px 18px; }
-    main { max-width: 1080px; margin: 0 auto; padding: 18px; }
-    .card { background: #fff; border-radius: 16px; padding: 18px; margin: 14px 0; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; }
-    button { background: #f97316; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
-    button.secondary { background: #111827; }
-    input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; margin: 5px 0 10px; }
-    label { font-size: 13px; color: #555; font-weight: 700; }
-    pre { background: #111827; color: #e5e7eb; padding: 14px; border-radius: 12px; overflow: auto; }
-    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>UMKM Marketplace Foundation</h1>
-    <p>Fondasi marketplace multi-vendor: customer, seller, admin, produk, order, ongkir, payment, COD, chat, pixel event.</p>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Project Autopilot</title>
+    <style>
+      :root {
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #172033;
+        background: #f6f7fb;
+      }
 
-  <main>
-    <section class="card">
-      <h2>Akun Demo</h2>
-      <div class="grid">
-        <div>
-          <label>Email</label>
-          <input id="email" value="seller@example.com" />
-          <label>Password</label>
-          <input id="password" value="seller123" type="password" />
-          <div class="row">
-            <button onclick="login()">Login</button>
-            <button class="secondary" onclick="loginAsAdmin()">Login Admin</button>
-          </div>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f6f7fb; }
+
+      header {
+        padding: 28px 18px;
+        background: linear-gradient(135deg, #172033, #30405f);
+        color: white;
+      }
+
+      main {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      h1, h2, h3 { margin: 0 0 10px; }
+      p { line-height: 1.55; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+      }
+
+      .card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      }
+
+      label {
+        display: block;
+        font-weight: 700;
+        margin: 12px 0 6px;
+      }
+
+      input, textarea, select {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font: inherit;
+        background: white;
+      }
+
+      textarea { min-height: 140px; }
+
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 14px;
+        font-weight: 800;
+        cursor: pointer;
+        background: #f59e0b;
+        color: #111827;
+      }
+
+      button.secondary { background: #e2e8f0; color: #172033; }
+      .status { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; background: #e0f2fe; color: #075985; font-size: 12px; font-weight: 800; }
+      .muted { color: #64748b; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 12px; max-height: 360px; overflow: auto; }
+      .stack { display: grid; gap: 12px; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .section-title { margin-top: 22px; margin-bottom: 10px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>AI Project Autopilot</h1>
+      <p>Command center untuk mengubah ide kasar menjadi project brief, sprint plan, task teknis, generated prompt, report, dan approval gate.</p>
+    </header>
+
+    <main class="stack">
+      <section class="card">
+        <h2>Buat Project dari Brief Kasar</h2>
+        <label for="name">Nama Project</label>
+        <input id="name" value="AI Project Autopilot" />
+
+        <label for="repository">Repository</label>
+        <input id="repository" value="gioginanjar2212/belajar-github-actions" />
+
+        <label for="mainBranch">Main Branch</label>
+        <input id="mainBranch" value="main" />
+
+        <label for="roughBrief">Brief Kasar</label>
+        <textarea id="roughBrief">Buat sistem command center yang membantu mengubah ide kasar menjadi project brief, sprint plan, task teknis, generated prompt, report, dan approval gate.</textarea>
+
+        <div class="actions">
+          <button id="createProject">Generate Planning</button>
+          <button class="secondary" id="refreshProjects">Refresh Dashboard</button>
         </div>
-        <pre id="session">Belum login.</pre>
-      </div>
-    </section>
+      </section>
 
-    <section class="card">
-      <h2>Produk Aktif</h2>
-      <button onclick="loadProducts()">Muat Produk</button>
-      <div id="products" class="grid"></div>
-    </section>
+      <h2 class="section-title">Dashboard Minimal</h2>
+      <section class="grid">
+        <div class="card">
+          <h3>1. Project</h3>
+          <div id="projects" class="stack muted">Belum dimuat.</div>
+        </div>
+        <div class="card">
+          <h3>2. Sprint</h3>
+          <div id="sprints" class="stack muted">Pilih project.</div>
+        </div>
+        <div class="card">
+          <h3>3. Task</h3>
+          <div id="tasks" class="stack muted">Pilih project.</div>
+        </div>
+      </section>
 
-    <section class="card">
-      <h2>Seller Dashboard</h2>
-      <p>Login sebagai seller, lalu buka dashboard.</p>
-      <div class="row">
-        <button onclick="loadSellerDashboard()">Buka Dashboard Seller</button>
-        <button class="secondary" onclick="createProduct()">Tambah Produk Demo</button>
-      </div>
-      <pre id="seller-dashboard">Belum ada data.</pre>
-    </section>
+      <section class="grid">
+        <div class="card">
+          <h3>4. Generated Prompt</h3>
+          <pre id="prompt">Pilih task untuk melihat generated prompt.</pre>
+        </div>
+        <div class="card">
+          <h3>5. GitHub Branch</h3>
+          <p id="branch" class="muted">Placeholder Sprint AUTO-1.</p>
+          <h3>6. Pull Request</h3>
+          <p id="pullRequest" class="muted">Placeholder Sprint AUTO-1.</p>
+          <h3>7. CI Status</h3>
+          <p id="ciStatus" class="muted">Placeholder Sprint AUTO-1.</p>
+        </div>
+        <div class="card">
+          <h3>8. Error Log</h3>
+          <p id="errorLog" class="muted">Belum ada error.</p>
+          <h3>9. Auto Fix Attempt</h3>
+          <p id="fixAttempt" class="muted">0 / 3</p>
+          <h3>11. Approval Button</h3>
+          <button id="approvalButton" class="secondary">Request Approval Placeholder</button>
+        </div>
+      </section>
 
-    <section class="card">
-      <h2>Admin Dashboard</h2>
-      <p>Login sebagai admin untuk melihat semua seller.</p>
-      <button onclick="loadAdminSellers()">Lihat Seller</button>
-      <pre id="admin-dashboard">Belum ada data.</pre>
-    </section>
+      <section class="card">
+        <h3>10. Report</h3>
+        <pre id="report">Report akan tampil setelah project dipilih.</pre>
+      </section>
+    </main>
 
-    <section class="card">
-      <h2>Simulasi Checkout</h2>
-      <p>Checkout produk pertama dengan metode VA.</p>
-      <button onclick="checkout()">Checkout Simulasi</button>
-      <pre id="result">Belum ada hasil.</pre>
-    </section>
-  </main>
+    <script>
+      let selectedProjectId = null;
+      let selectedTaskId = null;
 
-  <script>
-    let token = '';
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          headers: { 'Content-Type': 'application/json' },
+          ...options
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Request gagal');
+        return data;
+      }
 
-    async function api(path, options = {}) {
-      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-      if (token) headers.Authorization = `Bearer ${token}`;
+      function actionButton(label, onClick) {
+        const item = document.createElement('button');
+        item.className = 'secondary';
+        item.textContent = label;
+        item.addEventListener('click', onClick);
+        return item;
+      }
 
-      const response = await fetch(path, { ...options, headers });
-      return response.json();
-    }
+      async function loadProjects() {
+        const { projects } = await api('/api/projects');
+        const target = document.getElementById('projects');
+        target.innerHTML = '';
 
-    async function login() {
-      const data = await api('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value
-        })
+        if (!projects.length) {
+          target.textContent = 'Belum ada project.';
+          return;
+        }
+
+        projects.forEach((project) => {
+          const card = document.createElement('div');
+          card.innerHTML = `<strong>${project.name}</strong><br><span class="status">${project.status}</span><p class="muted">${project.taskCount} task · ${project.promptReadyCount} prompt ready</p>`;
+          card.appendChild(actionButton('Buka', () => loadProject(project.id)));
+          target.appendChild(card);
+        });
+      }
+
+      async function loadProject(projectId) {
+        selectedProjectId = projectId;
+        const bundle = await api(`/api/projects/${projectId}`);
+        const report = await api(`/api/projects/${projectId}/report`);
+
+        document.getElementById('sprints').innerHTML = bundle.sprints.map((sprint) => `<div><strong>${sprint.title}</strong><p>${sprint.goal}</p><span class="status">${sprint.status}</span></div>`).join('');
+
+        const taskBox = document.getElementById('tasks');
+        taskBox.innerHTML = '';
+        bundle.tasks.forEach((task) => {
+          const taskItem = document.createElement('div');
+          taskItem.innerHTML = `<strong>${task.title}</strong><br><span class="status">${task.status}</span><p class="muted">${task.description}</p>`;
+          taskItem.appendChild(actionButton('Lihat Prompt', () => selectTask(task)));
+          taskBox.appendChild(taskItem);
+        });
+
+        document.getElementById('report').textContent = JSON.stringify(report.report, null, 2);
+        if (bundle.tasks[0]) selectTask(bundle.tasks[0]);
+      }
+
+      function selectTask(task) {
+        selectedTaskId = task.id;
+        document.getElementById('prompt').textContent = task.generatedPrompt;
+        document.getElementById('branch').textContent = task.branchName || 'Belum dibuat pada Sprint AUTO-1';
+        document.getElementById('pullRequest').textContent = task.pullRequestUrl || 'Belum dibuka pada Sprint AUTO-1';
+        document.getElementById('ciStatus').textContent = task.ciStatus || 'not_started';
+        document.getElementById('errorLog').textContent = task.errorSummary || 'Belum ada error.';
+        document.getElementById('fixAttempt').textContent = `${task.fixAttemptCount} / 3`;
+      }
+
+      document.getElementById('createProject').addEventListener('click', async () => {
+        const payload = {
+          name: document.getElementById('name').value,
+          repository: document.getElementById('repository').value,
+          mainBranch: document.getElementById('mainBranch').value,
+          roughBrief: document.getElementById('roughBrief').value
+        };
+
+        const created = await api('/api/projects', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        await loadProjects();
+        await loadProject(created.project.id);
       });
 
-      token = data.token || '';
-      document.getElementById('session').textContent = JSON.stringify(data, null, 2);
-    }
-
-    async function loginAsAdmin() {
-      document.getElementById('email').value = 'admin@example.com';
-      document.getElementById('password').value = 'admin123';
-      await login();
-    }
-
-    async function loadProducts() {
-      const data = await api('/api/products');
-      document.getElementById('products').innerHTML = data.products.map(product => `
-        <article class="card">
-          <h3>${product.name}</h3>
-          <p>Kategori: ${product.category}</p>
-          <p>Harga: Rp${product.price.toLocaleString('id-ID')}</p>
-          <p>Stok: ${product.stock}</p>
-        </article>
-      `).join('');
-    }
-
-    async function loadSellerDashboard() {
-      const data = await api('/api/seller/dashboard');
-      document.getElementById('seller-dashboard').textContent = JSON.stringify(data, null, 2);
-    }
-
-    async function loadAdminSellers() {
-      const data = await api('/api/admin/sellers');
-      document.getElementById('admin-dashboard').textContent = JSON.stringify(data, null, 2);
-    }
-
-    async function createProduct() {
-      const data = await api('/api/products', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: 'Produk Baru dari Seller',
-          category: 'Demo',
-          price: 99000,
-          stock: 12,
-          weightGram: 300
-        })
+      document.getElementById('refreshProjects').addEventListener('click', loadProjects);
+      document.getElementById('approvalButton').addEventListener('click', async () => {
+        if (!selectedTaskId) return alert('Pilih task dulu.');
+        const result = await api(`/api/tasks/${selectedTaskId}/approvals`, {
+          method: 'POST',
+          body: JSON.stringify({ type: 'merge_main', requestedReason: 'Placeholder approval button untuk Sprint AUTO-1.' })
+        });
+        alert(`Approval dibuat: ${result.approval.status}`);
+        if (selectedProjectId) await loadProject(selectedProjectId);
       });
 
-      document.getElementById('seller-dashboard').textContent = JSON.stringify(data, null, 2);
-      loadProducts();
-    }
-
-    async function checkout() {
-      const products = await api('/api/products');
-      const firstProduct = products.products[0];
-
-      const data = await api('/api/checkout', {
-        method: 'POST',
-        body: JSON.stringify({
-          customerName: 'Customer Demo',
-          customerPhone: '081234567890',
-          destinationCity: 'Jakarta',
-          paymentMethod: 'VA',
-          items: [{ productId: firstProduct.id, qty: 1 }]
-        })
-      });
-
-      document.getElementById('result').textContent = JSON.stringify(data, null, 2);
-      loadProducts();
-    }
-
-    loadProducts();
-  </script>
-</body>
+      loadProjects();
+    </script>
+  </body>
 </html>
