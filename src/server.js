@@ -8,6 +8,15 @@ import {
   buildProjectReport,
   createPlanningAutopilotProject
 } from './services/planner.js';
+import {
+  applyCiResult,
+  createAutoFixAttempt,
+  createGitHubExecutionPlan,
+  createQaReport,
+  createReleasePlan,
+  markBranchCreated,
+  markDraftPullRequestOpened
+} from './services/githubAutopilot.js';
 
 ensureDb();
 
@@ -33,8 +42,22 @@ function findProjectBundle(db, projectId) {
   const taskIds = new Set(tasks.map((task) => task.id));
   const runLogs = db.runLogs.filter((item) => taskIds.has(item.taskId));
   const approvals = db.approvals.filter((item) => item.projectId === project.id);
+  const githubRuns = db.githubRuns.filter((item) => item.projectId === project.id);
+  const qaReports = db.qaReports.filter((item) => item.projectId === project.id);
+  const releasePlans = db.releasePlans.filter((item) => item.projectId === project.id);
 
-  return { project, sprints, tasks, runLogs, approvals };
+  return { project, sprints, tasks, runLogs, approvals, githubRuns, qaReports, releasePlans };
+}
+
+function findTaskContext(db, taskId) {
+  const task = db.tasks.find((item) => item.id === taskId);
+  if (!task) return null;
+
+  const project = db.projects.find((item) => item.id === task.projectId);
+  if (!project) return null;
+
+  let githubRun = db.githubRuns.find((item) => item.taskId === task.id);
+  return { task, project, githubRun };
 }
 
 function pushRunLog(db, { taskId, type, message, rawLog = '' }) {
@@ -51,8 +74,17 @@ function pushRunLog(db, { taskId, type, message, rawLog = '' }) {
   return runLog;
 }
 
+function getOrCreateGithubRun(db, project, task) {
+  let githubRun = db.githubRuns.find((item) => item.taskId === task.id);
+  if (!githubRun) {
+    githubRun = createGitHubExecutionPlan({ project, task });
+    db.githubRuns.push(githubRun);
+  }
+  return githubRun;
+}
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'ai-project-autopilot', sprint: 'AUTO-1' });
+  res.json({ status: 'ok', service: 'ai-project-autopilot', sprint: 'AUTO-2-5' });
 });
 
 app.post('/api/projects', (req, res) => {
@@ -88,7 +120,9 @@ app.get('/api/projects', (req, res) => {
       ...project,
       sprintCount: sprints.length,
       taskCount: tasks.length,
-      promptReadyCount: tasks.filter((task) => task.status === 'prompt_ready').length
+      promptReadyCount: tasks.filter((task) => task.status === 'prompt_ready').length,
+      prOpenedCount: tasks.filter((task) => task.status === 'pr_opened').length,
+      readyForReviewCount: tasks.filter((task) => task.status === 'ready_for_review').length
     };
   });
 
@@ -115,6 +149,31 @@ app.get('/api/projects/:projectId/report', (req, res) => {
   }
 
   res.json({ report: buildProjectReport(bundle) });
+});
+
+app.get('/api/projects/:projectId/final-report', (req, res) => {
+  const db = readDb();
+  const bundle = findProjectBundle(db, req.params.projectId);
+
+  if (!bundle) {
+    return res.status(404).json({ message: 'Project tidak ditemukan' });
+  }
+
+  res.json({
+    report: {
+      ...buildProjectReport(bundle),
+      maturity: {
+        level1PlanningAutopilot: 'active',
+        level2GitHubAutopilot: bundle.githubRuns.length > 0 ? 'foundation_active' : 'not_started',
+        level3AutoFixCi: bundle.tasks.some((task) => task.fixAttemptCount > 0) ? 'foundation_active' : 'not_started',
+        level4AutoQa: bundle.qaReports.length > 0 ? 'foundation_active' : 'not_started',
+        level5ReleaseAutopilot: bundle.releasePlans.length > 0 ? 'waiting_approval_foundation' : 'not_started'
+      },
+      githubRuns: bundle.githubRuns,
+      qaReports: bundle.qaReports,
+      releasePlans: bundle.releasePlans
+    }
+  });
 });
 
 app.get('/api/tasks/:taskId/prompt', (req, res) => {
@@ -154,6 +213,162 @@ app.patch('/api/tasks/:taskId/status', (req, res) => {
 
   writeDb(db);
   res.json({ task, runLog });
+});
+
+app.post('/api/tasks/:taskId/github/plan', (req, res) => {
+  const db = readDb();
+  const context = findTaskContext(db, req.params.taskId);
+
+  if (!context) {
+    return res.status(404).json({ message: 'Task tidak ditemukan' });
+  }
+
+  const { project, task } = context;
+  const githubRun = getOrCreateGithubRun(db, project, task);
+  markBranchCreated({ task, githubRun });
+  const runLog = pushRunLog(db, {
+    taskId: task.id,
+    type: 'github_branch_planned',
+    message: `Branch disiapkan: ${githubRun.branchName}`,
+    rawLog: JSON.stringify(githubRun, null, 2)
+  });
+
+  writeDb(db);
+  res.status(201).json({ task, githubRun, runLog });
+});
+
+app.post('/api/tasks/:taskId/github/open-pr', (req, res) => {
+  const db = readDb();
+  const context = findTaskContext(db, req.params.taskId);
+
+  if (!context) {
+    return res.status(404).json({ message: 'Task tidak ditemukan' });
+  }
+
+  const { project, task } = context;
+  const githubRun = getOrCreateGithubRun(db, project, task);
+  markDraftPullRequestOpened({ task, githubRun });
+  const runLog = pushRunLog(db, {
+    taskId: task.id,
+    type: 'draft_pr_opened',
+    message: `Draft PR disiapkan: ${githubRun.pullRequestUrl}`,
+    rawLog: JSON.stringify(githubRun, null, 2)
+  });
+
+  writeDb(db);
+  res.status(201).json({ task, githubRun, runLog });
+});
+
+app.post('/api/tasks/:taskId/ci/result', (req, res) => {
+  const { conclusion = 'success', errorSummary = '' } = req.body;
+
+  if (!['success', 'failure'].includes(conclusion)) {
+    return res.status(422).json({ message: 'conclusion harus success atau failure' });
+  }
+
+  const db = readDb();
+  const context = findTaskContext(db, req.params.taskId);
+
+  if (!context) {
+    return res.status(404).json({ message: 'Task tidak ditemukan' });
+  }
+
+  const { project, task } = context;
+  const githubRun = getOrCreateGithubRun(db, project, task);
+  applyCiResult({ task, githubRun, conclusion, errorSummary });
+  const runLog = pushRunLog(db, {
+    taskId: task.id,
+    type: conclusion === 'success' ? 'ci_success' : 'ci_failed',
+    message: conclusion === 'success' ? 'CI hijau dan task siap review.' : 'CI merah dan butuh auto-fix.',
+    rawLog: errorSummary
+  });
+
+  writeDb(db);
+  res.json({ task, githubRun, runLog });
+});
+
+app.post('/api/tasks/:taskId/auto-fix', (req, res) => {
+  try {
+    const { rawLog = '', fixed = false } = req.body;
+    const db = readDb();
+    const context = findTaskContext(db, req.params.taskId);
+
+    if (!context) {
+      return res.status(404).json({ message: 'Task tidak ditemukan' });
+    }
+
+    const fixAttempt = createAutoFixAttempt({ task: context.task, rawLog, fixed });
+    const runLog = pushRunLog(db, {
+      taskId: context.task.id,
+      type: 'auto_fix_attempt',
+      message: `Auto-fix attempt ${fixAttempt.attempt}/3: ${fixAttempt.summary}`,
+      rawLog
+    });
+
+    writeDb(db);
+    res.status(201).json({ task: context.task, fixAttempt, runLog });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
+  }
+});
+
+app.post('/api/tasks/:taskId/qa-report', (req, res) => {
+  const db = readDb();
+  const context = findTaskContext(db, req.params.taskId);
+
+  if (!context) {
+    return res.status(404).json({ message: 'Task tidak ditemukan' });
+  }
+
+  const qaReport = createQaReport({ project: context.project, task: context.task });
+  db.qaReports.push(qaReport);
+  const runLog = pushRunLog(db, {
+    taskId: context.task.id,
+    type: 'qa_report_generated',
+    message: `QA report dibuat: ${qaReport.status}`,
+    rawLog: JSON.stringify(qaReport, null, 2)
+  });
+
+  writeDb(db);
+  res.status(201).json({ qaReport, runLog });
+});
+
+app.post('/api/projects/:projectId/release-plan', (req, res) => {
+  const db = readDb();
+  const bundle = findProjectBundle(db, req.params.projectId);
+
+  if (!bundle) {
+    return res.status(404).json({ message: 'Project tidak ditemukan' });
+  }
+
+  const releasePlan = createReleasePlan({ project: bundle.project });
+  db.releasePlans.push(releasePlan);
+
+  const firstTask = bundle.tasks[0];
+  const approval = {
+    id: `approval_${nanoid(10)}`,
+    projectId: bundle.project.id,
+    taskId: firstTask?.id || null,
+    type: 'deploy_production',
+    status: 'pending',
+    requestedReason: 'Deploy production wajib approval user.',
+    approvedAt: null,
+    rejectedAt: null,
+    createdAt: now()
+  };
+  db.approvals.push(approval);
+
+  if (firstTask) {
+    pushRunLog(db, {
+      taskId: firstTask.id,
+      type: 'release_plan_created',
+      message: 'Release plan dibuat dan menunggu approval production.',
+      rawLog: JSON.stringify(releasePlan, null, 2)
+    });
+  }
+
+  writeDb(db);
+  res.status(201).json({ releasePlan, approval });
 });
 
 app.post('/api/tasks/:taskId/approvals', (req, res) => {

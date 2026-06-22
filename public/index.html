@@ -5,84 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AI Project Autopilot</title>
     <style>
-      :root {
-        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        color: #172033;
-        background: #f6f7fb;
-      }
-
+      :root { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f7fb; }
       * { box-sizing: border-box; }
       body { margin: 0; background: #f6f7fb; }
-
-      header {
-        padding: 28px 18px;
-        background: linear-gradient(135deg, #172033, #30405f);
-        color: white;
-      }
-
-      main {
-        width: min(1180px, 100%);
-        margin: 0 auto;
-        padding: 18px;
-      }
-
+      header { padding: 28px 18px; background: linear-gradient(135deg, #172033, #30405f); color: white; }
+      main { width: min(1200px, 100%); margin: 0 auto; padding: 18px; }
       h1, h2, h3 { margin: 0 0 10px; }
       p { line-height: 1.55; }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 14px;
-      }
-
-      .card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 16px;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-      }
-
-      label {
-        display: block;
-        font-weight: 700;
-        margin: 12px 0 6px;
-      }
-
-      input, textarea, select {
-        width: 100%;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        padding: 10px 12px;
-        font: inherit;
-        background: white;
-      }
-
-      textarea { min-height: 140px; }
-
-      button {
-        border: 0;
-        border-radius: 12px;
-        padding: 11px 14px;
-        font-weight: 800;
-        cursor: pointer;
-        background: #f59e0b;
-        color: #111827;
-      }
-
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+      .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06); }
+      label { display: block; font-weight: 700; margin: 12px 0 6px; }
+      input, textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 12px; padding: 10px 12px; font: inherit; background: white; }
+      textarea { min-height: 120px; }
+      button { border: 0; border-radius: 12px; padding: 10px 13px; font-weight: 800; cursor: pointer; background: #f59e0b; color: #111827; }
       button.secondary { background: #e2e8f0; color: #172033; }
+      button.success { background: #bbf7d0; color: #14532d; }
+      button.danger { background: #fecaca; color: #7f1d1d; }
       .status { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; background: #e0f2fe; color: #075985; font-size: 12px; font-weight: 800; }
       .muted { color: #64748b; }
       pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 12px; max-height: 360px; overflow: auto; }
       .stack { display: grid; gap: 12px; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
       .section-title { margin-top: 22px; margin-bottom: 10px; }
+      .small { font-size: 13px; }
     </style>
   </head>
   <body>
     <header>
       <h1>AI Project Autopilot</h1>
-      <p>Command center untuk mengubah ide kasar menjadi project brief, sprint plan, task teknis, generated prompt, report, dan approval gate.</p>
+      <p>Command center untuk Planning, GitHub Autopilot, CI Monitor, Auto Fix, QA Report, Release Plan, dan Approval Gate.</p>
     </header>
 
     <main class="stack">
@@ -90,36 +41,23 @@
         <h2>Buat Project dari Brief Kasar</h2>
         <label for="name">Nama Project</label>
         <input id="name" value="AI Project Autopilot" />
-
         <label for="repository">Repository</label>
         <input id="repository" value="gioginanjar2212/belajar-github-actions" />
-
         <label for="mainBranch">Main Branch</label>
         <input id="mainBranch" value="main" />
-
         <label for="roughBrief">Brief Kasar</label>
-        <textarea id="roughBrief">Buat sistem command center yang membantu mengubah ide kasar menjadi project brief, sprint plan, task teknis, generated prompt, report, dan approval gate.</textarea>
-
+        <textarea id="roughBrief">Buat command center untuk mengubah ide kasar menjadi project brief, sprint plan, task, prompt, branch GitHub, draft PR, CI monitor, auto-fix, QA report, release plan, dan approval gate.</textarea>
         <div class="actions">
           <button id="createProject">Generate Planning</button>
           <button class="secondary" id="refreshProjects">Refresh Dashboard</button>
         </div>
       </section>
 
-      <h2 class="section-title">Dashboard Minimal</h2>
+      <h2 class="section-title">Dashboard Command Center</h2>
       <section class="grid">
-        <div class="card">
-          <h3>1. Project</h3>
-          <div id="projects" class="stack muted">Belum dimuat.</div>
-        </div>
-        <div class="card">
-          <h3>2. Sprint</h3>
-          <div id="sprints" class="stack muted">Pilih project.</div>
-        </div>
-        <div class="card">
-          <h3>3. Task</h3>
-          <div id="tasks" class="stack muted">Pilih project.</div>
-        </div>
+        <div class="card"><h3>1. Project</h3><div id="projects" class="stack muted">Belum dimuat.</div></div>
+        <div class="card"><h3>2. Sprint</h3><div id="sprints" class="stack muted">Pilih project.</div></div>
+        <div class="card"><h3>3. Task</h3><div id="tasks" class="stack muted">Pilih project.</div></div>
       </section>
 
       <section class="grid">
@@ -128,38 +66,43 @@
           <pre id="prompt">Pilih task untuk melihat generated prompt.</pre>
         </div>
         <div class="card">
-          <h3>5. GitHub Branch</h3>
-          <p id="branch" class="muted">Placeholder Sprint AUTO-1.</p>
-          <h3>6. Pull Request</h3>
-          <p id="pullRequest" class="muted">Placeholder Sprint AUTO-1.</p>
-          <h3>7. CI Status</h3>
-          <p id="ciStatus" class="muted">Placeholder Sprint AUTO-1.</p>
+          <h3>5. GitHub Branch</h3><p id="branch" class="muted">Belum dibuat.</p>
+          <h3>6. Pull Request</h3><p id="pullRequest" class="muted">Belum dibuka.</p>
+          <h3>7. CI Status</h3><p id="ciStatus" class="muted">not_started</p>
         </div>
         <div class="card">
-          <h3>8. Error Log</h3>
-          <p id="errorLog" class="muted">Belum ada error.</p>
-          <h3>9. Auto Fix Attempt</h3>
-          <p id="fixAttempt" class="muted">0 / 3</p>
-          <h3>11. Approval Button</h3>
-          <button id="approvalButton" class="secondary">Request Approval Placeholder</button>
+          <h3>8. Error Log</h3><p id="errorLog" class="muted">Belum ada error.</p>
+          <h3>9. Auto Fix Attempt</h3><p id="fixAttempt" class="muted">0 / 3</p>
+          <h3>11. Approval Button</h3><button id="approvalButton" class="secondary">Request Merge Approval</button>
         </div>
       </section>
 
       <section class="card">
-        <h3>10. Report</h3>
-        <pre id="report">Report akan tampil setelah project dipilih.</pre>
+        <h3>AUTO-2 sampai AUTO-5 Controls</h3>
+        <p class="muted small">Pilih task dulu, lalu jalankan alur dari kiri ke kanan. Semua status tersimpan di JSON storage.</p>
+        <div class="actions">
+          <button id="planBranch">AUTO-2 Plan Branch</button>
+          <button id="openPr">AUTO-2 Open Draft PR</button>
+          <button class="success" id="ciSuccess">AUTO-2 Mark CI Success</button>
+          <button class="danger" id="ciFail">AUTO-3 Mark CI Failed</button>
+          <button id="autoFix">AUTO-3 Auto Fix Attempt</button>
+          <button id="qaReport">AUTO-4 QA Report</button>
+          <button id="releasePlan">AUTO-5 Release Plan</button>
+          <button class="secondary" id="finalReportButton">Final Report</button>
+        </div>
       </section>
+
+      <section class="card"><h3>10. Report</h3><pre id="report">Report akan tampil setelah project dipilih.</pre></section>
+      <section class="card"><h3>Final Autopilot Report</h3><pre id="finalReport">Final report akan tampil setelah tombol Final Report ditekan.</pre></section>
     </main>
 
     <script>
       let selectedProjectId = null;
       let selectedTaskId = null;
+      let selectedTask = null;
 
       async function api(path, options = {}) {
-        const response = await fetch(path, {
-          headers: { 'Content-Type': 'application/json' },
-          ...options
-        });
+        const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Request gagal');
         return data;
@@ -177,15 +120,10 @@
         const { projects } = await api('/api/projects');
         const target = document.getElementById('projects');
         target.innerHTML = '';
-
-        if (!projects.length) {
-          target.textContent = 'Belum ada project.';
-          return;
-        }
-
+        if (!projects.length) { target.textContent = 'Belum ada project.'; return; }
         projects.forEach((project) => {
           const card = document.createElement('div');
-          card.innerHTML = `<strong>${project.name}</strong><br><span class="status">${project.status}</span><p class="muted">${project.taskCount} task · ${project.promptReadyCount} prompt ready</p>`;
+          card.innerHTML = `<strong>${project.name}</strong><br><span class="status">${project.status}</span><p class="muted">${project.taskCount} task · ${project.promptReadyCount} prompt · ${project.prOpenedCount || 0} PR · ${project.readyForReviewCount || 0} ready</p>`;
           card.appendChild(actionButton('Buka', () => loadProject(project.id)));
           target.appendChild(card);
         });
@@ -195,30 +133,37 @@
         selectedProjectId = projectId;
         const bundle = await api(`/api/projects/${projectId}`);
         const report = await api(`/api/projects/${projectId}/report`);
-
         document.getElementById('sprints').innerHTML = bundle.sprints.map((sprint) => `<div><strong>${sprint.title}</strong><p>${sprint.goal}</p><span class="status">${sprint.status}</span></div>`).join('');
-
         const taskBox = document.getElementById('tasks');
         taskBox.innerHTML = '';
         bundle.tasks.forEach((task) => {
           const taskItem = document.createElement('div');
           taskItem.innerHTML = `<strong>${task.title}</strong><br><span class="status">${task.status}</span><p class="muted">${task.description}</p>`;
-          taskItem.appendChild(actionButton('Lihat Prompt', () => selectTask(task)));
+          taskItem.appendChild(actionButton('Pilih Task', () => selectTask(task)));
           taskBox.appendChild(taskItem);
         });
-
         document.getElementById('report').textContent = JSON.stringify(report.report, null, 2);
         if (bundle.tasks[0]) selectTask(bundle.tasks[0]);
       }
 
       function selectTask(task) {
         selectedTaskId = task.id;
+        selectedTask = task;
         document.getElementById('prompt').textContent = task.generatedPrompt;
-        document.getElementById('branch').textContent = task.branchName || 'Belum dibuat pada Sprint AUTO-1';
-        document.getElementById('pullRequest').textContent = task.pullRequestUrl || 'Belum dibuka pada Sprint AUTO-1';
+        document.getElementById('branch').textContent = task.branchName || 'Belum dibuat.';
+        document.getElementById('pullRequest').textContent = task.pullRequestUrl || 'Belum dibuka.';
         document.getElementById('ciStatus').textContent = task.ciStatus || 'not_started';
         document.getElementById('errorLog').textContent = task.errorSummary || 'Belum ada error.';
-        document.getElementById('fixAttempt').textContent = `${task.fixAttemptCount} / 3`;
+        document.getElementById('fixAttempt').textContent = `${task.fixAttemptCount || 0} / 3`;
+      }
+
+      async function requireTask() {
+        if (!selectedTaskId) throw new Error('Pilih task dulu.');
+      }
+
+      async function refreshSelectedProject() {
+        await loadProjects();
+        if (selectedProjectId) await loadProject(selectedProjectId);
       }
 
       document.getElementById('createProject').addEventListener('click', async () => {
@@ -228,25 +173,21 @@
           mainBranch: document.getElementById('mainBranch').value,
           roughBrief: document.getElementById('roughBrief').value
         };
-
-        const created = await api('/api/projects', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+        const created = await api('/api/projects', { method: 'POST', body: JSON.stringify(payload) });
         await loadProjects();
         await loadProject(created.project.id);
       });
 
       document.getElementById('refreshProjects').addEventListener('click', loadProjects);
-      document.getElementById('approvalButton').addEventListener('click', async () => {
-        if (!selectedTaskId) return alert('Pilih task dulu.');
-        const result = await api(`/api/tasks/${selectedTaskId}/approvals`, {
-          method: 'POST',
-          body: JSON.stringify({ type: 'merge_main', requestedReason: 'Placeholder approval button untuk Sprint AUTO-1.' })
-        });
-        alert(`Approval dibuat: ${result.approval.status}`);
-        if (selectedProjectId) await loadProject(selectedProjectId);
-      });
+      document.getElementById('planBranch').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/github/plan`, { method: 'POST' }); await refreshSelectedProject(); });
+      document.getElementById('openPr').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/github/open-pr`, { method: 'POST' }); await refreshSelectedProject(); });
+      document.getElementById('ciSuccess').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/ci/result`, { method: 'POST', body: JSON.stringify({ conclusion: 'success' }) }); await refreshSelectedProject(); });
+      document.getElementById('ciFail').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/ci/result`, { method: 'POST', body: JSON.stringify({ conclusion: 'failure', errorSummary: 'Simulasi CI gagal untuk uji auto-fix.' }) }); await refreshSelectedProject(); });
+      document.getElementById('autoFix').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/auto-fix`, { method: 'POST', body: JSON.stringify({ rawLog: 'Simulasi error log CI.', fixed: false }) }); await refreshSelectedProject(); });
+      document.getElementById('qaReport').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/qa-report`, { method: 'POST' }); await refreshSelectedProject(); });
+      document.getElementById('releasePlan').addEventListener('click', async () => { if (!selectedProjectId) throw new Error('Pilih project dulu.'); await api(`/api/projects/${selectedProjectId}/release-plan`, { method: 'POST' }); await refreshSelectedProject(); });
+      document.getElementById('finalReportButton').addEventListener('click', async () => { if (!selectedProjectId) throw new Error('Pilih project dulu.'); const final = await api(`/api/projects/${selectedProjectId}/final-report`); document.getElementById('finalReport').textContent = JSON.stringify(final.report, null, 2); });
+      document.getElementById('approvalButton').addEventListener('click', async () => { await requireTask(); await api(`/api/tasks/${selectedTaskId}/approvals`, { method: 'POST', body: JSON.stringify({ type: 'merge_main', requestedReason: 'Merge ke main wajib approval user.' }) }); await refreshSelectedProject(); });
 
       loadProjects();
     </script>

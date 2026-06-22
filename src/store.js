@@ -9,7 +9,10 @@ const emptyDb = {
   sprints: [],
   tasks: [],
   runLogs: [],
-  approvals: []
+  approvals: [],
+  githubRuns: [],
+  qaReports: [],
+  releasePlans: []
 };
 
 function normalizeDb(db = {}) {
@@ -20,7 +23,10 @@ function normalizeDb(db = {}) {
     sprints: db.sprints || [],
     tasks: db.tasks || [],
     runLogs: db.runLogs || [],
-    approvals: db.approvals || []
+    approvals: db.approvals || [],
+    githubRuns: db.githubRuns || [],
+    qaReports: db.qaReports || [],
+    releasePlans: db.releasePlans || []
   };
 }
 
