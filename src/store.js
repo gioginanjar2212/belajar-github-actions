@@ -2,33 +2,25 @@ import fs from 'fs';
 import path from 'path';
 
 const dataDir = path.join(process.cwd(), 'data');
-const dbPath = path.join(dataDir, 'marketplace.json');
+const dbPath = path.join(dataDir, 'autopilot.json');
 
 const emptyDb = {
-  users: [],
-  sellers: [],
-  customers: [],
-  addresses: [],
-  products: [],
-  orders: [],
-  paymentEvents: [],
-  chats: [],
-  pixelEvents: []
+  projects: [],
+  sprints: [],
+  tasks: [],
+  runLogs: [],
+  approvals: []
 };
 
-function normalizeDb(db) {
+function normalizeDb(db = {}) {
   return {
     ...emptyDb,
     ...db,
-    users: db.users || [],
-    sellers: db.sellers || [],
-    customers: db.customers || [],
-    addresses: db.addresses || [],
-    products: db.products || [],
-    orders: db.orders || [],
-    paymentEvents: db.paymentEvents || [],
-    chats: db.chats || [],
-    pixelEvents: db.pixelEvents || []
+    projects: db.projects || [],
+    sprints: db.sprints || [],
+    tasks: db.tasks || [],
+    runLogs: db.runLogs || [],
+    approvals: db.approvals || []
   };
 }
 
@@ -50,7 +42,7 @@ export function readDb() {
 export function writeDb(db) {
   ensureDb();
   fs.writeFileSync(dbPath, JSON.stringify(normalizeDb(db), null, 2));
-  return db;
+  return normalizeDb(db);
 }
 
 export function resetDb(seedData = emptyDb) {
@@ -58,6 +50,9 @@ export function resetDb(seedData = emptyDb) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  fs.writeFileSync(dbPath, JSON.stringify(normalizeDb(seedData), null, 2));
-  return seedData;
+  const normalized = normalizeDb(seedData);
+  fs.writeFileSync(dbPath, JSON.stringify(normalized, null, 2));
+  return normalized;
 }
+
+export { emptyDb };
