@@ -1,17 +1,18 @@
-name: Marketplace Foundation CI
+name: AI Project Autopilot Legacy CI
 
 on:
   push:
     branches:
       - main
       - 'feature/**'
+      - 'codex/**'
   pull_request:
     branches:
       - main
   workflow_dispatch:
 
 jobs:
-  test-marketplace:
+  test-autopilot:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -27,7 +28,7 @@ jobs:
       - name: Install dependency
         run: npm install
 
-      - name: Seed data marketplace
+      - name: Seed data autopilot
         run: npm run seed
 
       - name: Jalankan automated test
@@ -38,17 +39,17 @@ jobs:
       - name: Buat report CI
         if: always()
         run: |
-          echo "MARKETPLACE FOUNDATION CI REPORT" > marketplace-ci-report.txt
-          echo "================================" >> marketplace-ci-report.txt
-          echo "Repository: ${{ github.repository }}" >> marketplace-ci-report.txt
-          echo "Branch: ${{ github.ref_name }}" >> marketplace-ci-report.txt
-          echo "Commit: ${{ github.sha }}" >> marketplace-ci-report.txt
-          echo "Run ID: ${{ github.run_id }}" >> marketplace-ci-report.txt
-          echo "Status: lihat job log untuk detail test" >> marketplace-ci-report.txt
+          echo "AI PROJECT AUTOPILOT CI REPORT" > autopilot-ci-report.txt
+          echo "================================" >> autopilot-ci-report.txt
+          echo "Repository: ${{ github.repository }}" >> autopilot-ci-report.txt
+          echo "Branch: ${{ github.ref_name }}" >> autopilot-ci-report.txt
+          echo "Commit: ${{ github.sha }}" >> autopilot-ci-report.txt
+          echo "Run ID: ${{ github.run_id }}" >> autopilot-ci-report.txt
+          echo "Status: lihat job log untuk detail test" >> autopilot-ci-report.txt
 
       - name: Upload report CI
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marketplace-ci-report
-          path: marketplace-ci-report.txt
+          name: autopilot-ci-report
+          path: autopilot-ci-report.txt
