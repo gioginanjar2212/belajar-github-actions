@@ -16,20 +16,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'umkm-marketplace-foundation' });
-});
-
-app.post('/api/auth/register/customer', (req, res) => {
-  try {
-    const user = createUser({ ...req.body, role: 'customer' });
-    res.status(201).json({ user });
-  } catch (error) {
-    res.status(422).json({ message: error.message });
-  }
-});
-
-app.post('/api/auth/register/seller', (req, res) => {
+function registerSeller(req, res) {
   const { storeName, ownerName, email, password, originCity } = req.body;
 
   if (!storeName || !ownerName || !email || !password || !originCity) {
@@ -65,14 +52,29 @@ app.post('/api/auth/register/seller', (req, res) => {
 
   try {
     const user = createUser({ name: ownerName, email: normalizedEmail, password, role: 'seller', sellerId: seller.id });
-    res.status(201).json({ seller, user });
+    return res.status(201).json({ seller, user });
   } catch (error) {
     const rollbackDb = readDb();
     rollbackDb.sellers = rollbackDb.sellers.filter((item) => item.id !== seller.id);
     writeDb(rollbackDb);
+    return res.status(422).json({ message: error.message });
+  }
+}
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'umkm-marketplace-foundation' });
+});
+
+app.post('/api/auth/register/customer', (req, res) => {
+  try {
+    const user = createUser({ ...req.body, role: 'customer' });
+    res.status(201).json({ user });
+  } catch (error) {
     res.status(422).json({ message: error.message });
   }
 });
+
+app.post('/api/auth/register/seller', registerSeller);
 
 app.post('/api/auth/login', (req, res) => {
   try {
@@ -92,7 +94,7 @@ app.get('/api/me', (req, res) => {
 
 app.post('/api/sellers/register', (req, res) => {
   req.body.storeName = req.body.storeName || req.body.name;
-  return app._router.handle(req, res, () => {}, '/api/auth/register/seller');
+  return registerSeller(req, res);
 });
 
 app.get('/api/sellers', (req, res) => {
