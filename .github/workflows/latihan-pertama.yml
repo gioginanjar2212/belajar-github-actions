@@ -1,0 +1,18 @@
+name: Latihan Pertama
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cek-awal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Tampilkan pesan
+        run: echo "GitHub Actions pertama saya berhasil jalan"
+
+      - name: Cek lokasi runner
+        run: pwd
+
+      - name: Cek isi folder
+        run: ls -la
