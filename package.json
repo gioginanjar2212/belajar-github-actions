@@ -1,8 +1,8 @@
 {
-  "name": "umkm-marketplace-foundation",
+  "name": "ai-project-autopilot",
   "version": "0.1.0",
   "private": true,
-  "description": "Foundation backend for a multi-vendor UMKM marketplace.",
+  "description": "Prompt-to-PR planning autopilot foundation with Express, JSON storage, generated prompts, dashboard, tests, and CI.",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
