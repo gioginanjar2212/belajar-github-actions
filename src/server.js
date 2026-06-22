@@ -6,12 +6,12 @@ import { calculateShippingRate, createShipment } from './services/shipping.js';
 import { createPaymentIntent } from './services/payment.js';
 import { recordPixelEvent } from './services/pixels.js';
 import { createUser, getUserFromToken, loginUser, requireRole, safeUser } from './auth.js';
+import { registerCartMediaRoutes } from './routes/cart-media.js';
 
 ensureDb();
 
 const app = express();
 const port = process.env.PORT || 3000;
-
 const sellerOrderStatuses = ['processing', 'shipped', 'delivered'];
 
 app.use(cors());
@@ -47,11 +47,7 @@ function registerSeller(req, res) {
     originCity,
     status: 'pending_approval',
     codEnabled: false,
-    pixelSettings: {
-      metaPixelId: '',
-      tiktokPixelId: '',
-      googleTagId: ''
-    },
+    pixelSettings: { metaPixelId: '', tiktokPixelId: '', googleTagId: '' },
     createdAt: new Date().toISOString()
   };
 
@@ -67,6 +63,104 @@ function registerSeller(req, res) {
     writeDb(rollbackDb);
     return res.status(422).json({ message: error.message });
   }
+}
+
+function prepareCheckoutItems(db, items) {
+  const orderItems = [];
+  let subtotal = 0;
+  let totalWeightGram = 0;
+  let sellerId = null;
+
+  for (const item of items) {
+    const product = db.products.find((productItem) => productItem.id === item.productId && productItem.active);
+
+    if (!product) {
+      return { error: { status: 404, message: `Produk ${item.productId} tidak ditemukan` } };
+    }
+
+    const qty = Number(item.qty || 1);
+    const variant = item.variantId ? (product.variants || []).find((variantItem) => variantItem.id === item.variantId) : null;
+
+    if (item.variantId && !variant) {
+      return { error: { status: 404, message: `Varian ${item.variantId} tidak ditemukan` } };
+    }
+
+    if (variant && variant.stock < qty) {
+      return { error: { status: 422, message: `Stok varian ${variant.value} tidak cukup` } };
+    }
+
+    if (product.stock < qty) {
+      return { error: { status: 422, message: `Stok ${product.name} tidak cukup` } };
+    }
+
+    sellerId = product.sellerId;
+    product.stock -= qty;
+    if (variant) variant.stock -= qty;
+
+    const finalPrice = Number(product.price) + Number(variant?.priceDelta || 0);
+    const finalWeight = Number(variant?.weightGram || product.weightGram);
+    const imageUrl = product.images?.find((image) => image.isPrimary)?.url || product.images?.[0]?.url || '';
+
+    subtotal += finalPrice * qty;
+    totalWeightGram += finalWeight * qty;
+    orderItems.push({
+      productId: product.id,
+      variantId: variant?.id || null,
+      name: product.name,
+      variant: variant ? `${variant.name}: ${variant.value}` : null,
+      price: finalPrice,
+      qty,
+      imageUrl
+    });
+  }
+
+  return { orderItems, subtotal, totalWeightGram, sellerId };
+}
+
+function createOrderFromItems({ db, currentUser = null, customerData, selectedAddress = null, items, paymentMethod = 'VA', source = 'checkout' }) {
+  const prepared = prepareCheckoutItems(db, items);
+
+  if (prepared.error) {
+    return prepared;
+  }
+
+  const seller = db.sellers.find((item) => item.id === prepared.sellerId);
+  const cod = paymentMethod === 'COD';
+
+  if (cod && !seller?.codEnabled) {
+    return { error: { status: 422, message: 'COD belum aktif untuk seller ini' } };
+  }
+
+  const shippingRate = calculateShippingRate({
+    originCity: seller.originCity,
+    destinationCity: customerData.destinationCity,
+    weightGram: prepared.totalWeightGram,
+    courier: cod ? 'COD' : 'REG'
+  });
+
+  const order = {
+    id: `ord_${nanoid(10)}`,
+    sellerId: prepared.sellerId,
+    customerId: currentUser?.role === 'customer' ? currentUser.id : null,
+    customerName: customerData.customerName,
+    customerPhone: customerData.customerPhone,
+    destinationCity: customerData.destinationCity,
+    addressId: selectedAddress?.id || null,
+    source,
+    items: prepared.orderItems,
+    subtotal: prepared.subtotal,
+    shippingCost: shippingRate.cost,
+    total: prepared.subtotal + shippingRate.cost,
+    status: cod ? 'waiting_seller_process_cod' : 'waiting_payment',
+    statusLogs: [],
+    createdAt: new Date().toISOString()
+  };
+
+  addStatusLog(order, order.status, 'system', source === 'cart' ? 'Order dibuat dari cart' : 'Order dibuat');
+  order.payment = createPaymentIntent({ orderId: order.id, amount: order.total, method: paymentMethod });
+  order.shipment = createShipment({ orderId: order.id, cod });
+
+  return { order };
 }
 
 app.get('/health', (req, res) => {
@@ -96,7 +190,6 @@ app.post('/api/auth/login', (req, res) => {
 app.get('/api/me', (req, res) => {
   const user = requireRole(req, res, ['customer', 'seller', 'admin']);
   if (!user) return;
-
   res.json({ user: safeUser(user) });
 });
 
@@ -126,14 +219,12 @@ app.post('/api/customer/addresses', (req, res) => {
 
   db.addresses.push(address);
   writeDb(db);
-
   res.status(201).json({ address });
 });
 
 app.get('/api/customer/addresses', (req, res) => {
   const user = requireRole(req, res, 'customer');
   if (!user) return;
-
   const db = readDb();
   res.json({ addresses: db.addresses.filter((item) => item.userId === user.id) });
 });
@@ -145,14 +236,12 @@ app.post('/api/sellers/register', (req, res) => {
 
 app.get('/api/sellers', (req, res) => {
   const db = readDb();
-  const publicSellers = db.sellers.filter((seller) => seller.status === 'approved');
-  res.json({ sellers: publicSellers });
+  res.json({ sellers: db.sellers.filter((seller) => seller.status === 'approved') });
 });
 
 app.get('/api/admin/sellers', (req, res) => {
   const admin = requireRole(req, res, 'admin');
   if (!admin) return;
-
   const db = readDb();
   res.json({ sellers: db.sellers });
 });
@@ -173,7 +262,6 @@ app.patch('/api/admin/sellers/:sellerId/approve', (req, res) => {
   seller.approvedAt = new Date().toISOString();
   seller.approvedBy = admin.id;
   writeDb(db);
-
   res.json({ seller });
 });
 
@@ -190,21 +278,19 @@ app.get('/api/seller/dashboard', (req, res) => {
 
   const products = db.products.filter((product) => product.sellerId === seller.id);
   const orders = db.orders.filter((order) => order.sellerId === seller.id);
-
   res.json({ seller, products, orders });
 });
 
 app.get('/api/products', (req, res) => {
   const db = readDb();
-  const activeProducts = db.products.filter((product) => product.active);
-  res.json({ products: activeProducts });
+  res.json({ products: db.products.filter((product) => product.active) });
 });
 
 app.post('/api/products', (req, res) => {
   const user = requireRole(req, res, 'seller');
   if (!user) return;
 
-  const { name, category, price, stock, weightGram, variants = [] } = req.body;
+  const { name, category, price, stock, weightGram, variants = [], images = [] } = req.body;
 
   if (!name || !category || !price || stock === undefined || !weightGram) {
     return res.status(422).json({ message: 'name, category, price, stock, dan weightGram wajib diisi' });
@@ -230,6 +316,12 @@ app.post('/api/products', (req, res) => {
     stock: Number(stock),
     weightGram: Number(weightGram),
     active: true,
+    images: images.map((image, index) => ({
+      id: image.id || `img_${nanoid(8)}`,
+      url: image.url,
+      alt: image.alt || name,
+      isPrimary: Boolean(image.isPrimary || index === 0)
+    })).filter((image) => image.url),
     variants: variants.map((variant) => ({
       id: variant.id || `var_${nanoid(8)}`,
       name: variant.name,
@@ -243,7 +335,6 @@ app.post('/api/products', (req, res) => {
 
   db.products.push(product);
   writeDb(db);
-
   res.status(201).json({ product });
 });
 
@@ -290,107 +381,23 @@ app.post('/api/checkout', (req, res) => {
     return res.status(422).json({ message: 'customerName, customerPhone, destinationCity atau addressId wajib diisi' });
   }
 
-  const orderItems = [];
-  let subtotal = 0;
-  let totalWeightGram = 0;
-  let sellerId = null;
+  const result = createOrderFromItems({ db, currentUser, customerData, selectedAddress, items, paymentMethod, source: 'checkout' });
 
-  for (const item of items) {
-    const product = db.products.find((productItem) => productItem.id === item.productId && productItem.active);
-
-    if (!product) {
-      return res.status(404).json({ message: `Produk ${item.productId} tidak ditemukan` });
-    }
-
-    const qty = Number(item.qty || 1);
-    const variant = item.variantId ? (product.variants || []).find((variantItem) => variantItem.id === item.variantId) : null;
-
-    if (item.variantId && !variant) {
-      return res.status(404).json({ message: `Varian ${item.variantId} tidak ditemukan` });
-    }
-
-    if (variant && variant.stock < qty) {
-      return res.status(422).json({ message: `Stok varian ${variant.value} tidak cukup` });
-    }
-
-    if (product.stock < qty) {
-      return res.status(422).json({ message: `Stok ${product.name} tidak cukup` });
-    }
-
-    sellerId = product.sellerId;
-    product.stock -= qty;
-    if (variant) variant.stock -= qty;
-
-    const finalPrice = product.price + (variant?.priceDelta || 0);
-    const finalWeight = variant?.weightGram || product.weightGram;
-
-    subtotal += finalPrice * qty;
-    totalWeightGram += finalWeight * qty;
-    orderItems.push({
-      productId: product.id,
-      variantId: variant?.id || null,
-      name: product.name,
-      variant: variant ? `${variant.name}: ${variant.value}` : null,
-      price: finalPrice,
-      qty
-    });
+  if (result.error) {
+    return res.status(result.error.status).json({ message: result.error.message });
   }
 
-  const seller = db.sellers.find((item) => item.id === sellerId);
-  const cod = paymentMethod === 'COD';
-
-  if (cod && !seller?.codEnabled) {
-    return res.status(422).json({ message: 'COD belum aktif untuk seller ini' });
-  }
-
-  const shippingRate = calculateShippingRate({
-    originCity: seller.originCity,
-    destinationCity: customerData.destinationCity,
-    weightGram: totalWeightGram,
-    courier: cod ? 'COD' : 'REG'
-  });
-
-  const order = {
-    id: `ord_${nanoid(10)}`,
-    sellerId,
-    customerId: currentUser?.role === 'customer' ? currentUser.id : null,
-    customerName: customerData.customerName,
-    customerPhone: customerData.customerPhone,
-    destinationCity: customerData.destinationCity,
-    addressId: selectedAddress?.id || null,
-    items: orderItems,
-    subtotal,
-    shippingCost: shippingRate.cost,
-    total: subtotal + shippingRate.cost,
-    status: cod ? 'waiting_seller_process_cod' : 'waiting_payment',
-    statusLogs: [],
-    createdAt: new Date().toISOString()
-  };
-
-  addStatusLog(order, order.status, 'system', 'Order dibuat');
-
-  const payment = createPaymentIntent({
-    orderId: order.id,
-    amount: order.total,
-    method: paymentMethod
-  });
-
-  const shipment = createShipment({ orderId: order.id, cod });
-
-  order.payment = payment;
-  order.shipment = shipment;
-
-  db.orders.push(order);
+  db.orders.push(result.order);
   writeDb(db);
 
   recordPixelEvent({
-    sellerId,
+    sellerId: result.order.sellerId,
     eventName: 'Purchase',
     source: 'server',
-    payload: { orderId: order.id, total: order.total, paymentMethod }
+    payload: { orderId: result.order.id, total: result.order.total, paymentMethod }
   });
 
-  res.status(201).json({ order });
+  res.status(201).json({ order: result.order });
 });
 
 app.post('/api/payments/events', (req, res) => {
@@ -407,14 +414,7 @@ app.post('/api/payments/events', (req, res) => {
     return res.status(404).json({ message: 'Order tidak ditemukan' });
   }
 
-  const paymentEvent = {
-    id: `payevt_${nanoid(10)}`,
-    orderId,
-    status,
-    providerReference,
-    createdAt: new Date().toISOString()
-  };
-
+  const paymentEvent = { id: `payevt_${nanoid(10)}`, orderId, status, providerReference, createdAt: new Date().toISOString() };
   db.paymentEvents.push(paymentEvent);
 
   if (status === 'paid') {
@@ -497,19 +497,13 @@ app.post('/api/chat/messages', (req, res) => {
   }
 
   const db = readDb();
-  const chatMessage = {
-    id: `chat_${nanoid(10)}`,
-    sellerId,
-    customerName,
-    message,
-    createdAt: new Date().toISOString()
-  };
-
+  const chatMessage = { id: `chat_${nanoid(10)}`, sellerId, customerName, message, createdAt: new Date().toISOString() };
   db.chats.push(chatMessage);
   writeDb(db);
-
   res.status(201).json({ chatMessage });
 });
+
+registerCartMediaRoutes(app);
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(port, () => {
