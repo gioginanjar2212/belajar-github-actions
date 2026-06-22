@@ -23,7 +23,7 @@ function request(method, path, body = null) {
 }
 
 function clearAutopilotDb() {
-  resetDb({ projects: [], sprints: [], tasks: [], runLogs: [], approvals: [] });
+  resetDb({ projects: [], sprints: [], tasks: [], runLogs: [], approvals: [], githubRuns: [], qaReports: [], releasePlans: [] });
 }
 
 async function createDemoProject() {
@@ -31,7 +31,7 @@ async function createDemoProject() {
     name: 'Prompt-to-PR System',
     repository: 'gioginanjar2212/belajar-github-actions',
     mainBranch: 'main',
-    roughBrief: 'Bangun AI Project Autopilot yang mengubah ide kasar menjadi project brief, sprint plan, task teknis, generated prompt, report, dan approval gate.'
+    roughBrief: 'Bangun AI Project Autopilot yang mengubah ide kasar menjadi project brief, sprint plan, task teknis, generated prompt, report, GitHub execution, CI monitor, auto-fix, QA report, release plan, dan approval gate.'
   });
 }
 
@@ -43,7 +43,7 @@ test('health endpoint aktif untuk AI Project Autopilot', async () => {
   assert.equal(res.status, 200);
   assert.equal(res.data.status, 'ok');
   assert.equal(res.data.service, 'ai-project-autopilot');
-  assert.equal(res.data.sprint, 'AUTO-1');
+  assert.equal(res.data.sprint, 'AUTO-2-5');
 });
 
 test('project bisa dibuat dari rough brief dan menghasilkan sprint serta task', async () => {
@@ -74,49 +74,102 @@ test('generated prompt tersedia untuk setiap task dengan approval gate', async (
   assert.match(promptRes.data.generatedPrompt, /EXPECTED REPORT:/);
 });
 
-test('project detail menampilkan project sprint task logs dan approval kosong', async () => {
-  clearAutopilotDb();
-
-  const created = await createDemoProject();
-  const detailRes = await request('GET', `/api/projects/${created.data.project.id}`);
-
-  assert.equal(detailRes.status, 200);
-  assert.equal(detailRes.data.project.id, created.data.project.id);
-  assert.equal(detailRes.data.sprints.length, 1);
-  assert.equal(detailRes.data.tasks.length, 5);
-  assert.equal(detailRes.data.approvals.length, 0);
-  assert.ok(detailRes.data.runLogs.length >= 1);
-});
-
-test('report sederhana menghitung status task dan placeholder GitHub CI', async () => {
-  clearAutopilotDb();
-
-  const created = await createDemoProject();
-  const reportRes = await request('GET', `/api/projects/${created.data.project.id}/report`);
-
-  assert.equal(reportRes.status, 200);
-  assert.equal(reportRes.data.report.project.name, 'Prompt-to-PR System');
-  assert.equal(reportRes.data.report.sprintCount, 1);
-  assert.equal(reportRes.data.report.taskCount, 5);
-  assert.equal(reportRes.data.report.taskStatusCounts.prompt_ready, 5);
-  assert.equal(reportRes.data.report.githubPlaceholders.length, 5);
-  assert.equal(reportRes.data.report.githubPlaceholders[0].ciStatus, 'not_started');
-});
-
-test('status task bisa diperbarui dan errorSummary tersimpan', async () => {
+test('GitHub plan membuat branchName dan status branch_created', async () => {
   clearAutopilotDb();
 
   const created = await createDemoProject();
   const task = created.data.tasks[0];
-  const statusRes = await request('PATCH', `/api/tasks/${task.id}/status`, {
-    status: 'blocked',
-    errorSummary: 'Menunggu approval scope.'
-  });
+  const planRes = await request('POST', `/api/tasks/${task.id}/github/plan`);
 
-  assert.equal(statusRes.status, 200);
-  assert.equal(statusRes.data.task.status, 'blocked');
-  assert.equal(statusRes.data.task.errorSummary, 'Menunggu approval scope.');
-  assert.equal(statusRes.data.runLog.type, 'status_changed');
+  assert.equal(planRes.status, 201);
+  assert.equal(planRes.data.task.status, 'branch_created');
+  assert.match(planRes.data.task.branchName, /^autopilot\//);
+  assert.equal(planRes.data.githubRun.status, 'branch_created');
+});
+
+test('draft PR foundation mengisi pullRequestUrl dan ci_running', async () => {
+  clearAutopilotDb();
+
+  const created = await createDemoProject();
+  const task = created.data.tasks[0];
+  await request('POST', `/api/tasks/${task.id}/github/plan`);
+  const prRes = await request('POST', `/api/tasks/${task.id}/github/open-pr`);
+
+  assert.equal(prRes.status, 201);
+  assert.equal(prRes.data.task.status, 'pr_opened');
+  assert.equal(prRes.data.task.ciStatus, 'ci_running');
+  assert.match(prRes.data.task.pullRequestUrl, /github.com\/gioginanjar2212\/belajar-github-actions\/pull\/autopilot-/);
+});
+
+test('CI success menjadikan task ready_for_review', async () => {
+  clearAutopilotDb();
+
+  const created = await createDemoProject();
+  const task = created.data.tasks[0];
+  await request('POST', `/api/tasks/${task.id}/github/open-pr`);
+  const ciRes = await request('POST', `/api/tasks/${task.id}/ci/result`, { conclusion: 'success' });
+
+  assert.equal(ciRes.status, 200);
+  assert.equal(ciRes.data.task.status, 'ready_for_review');
+  assert.equal(ciRes.data.task.ciStatus, 'success');
+});
+
+test('CI failure dan auto-fix attempt dibatasi maksimal 3 kali', async () => {
+  clearAutopilotDb();
+
+  const created = await createDemoProject();
+  const task = created.data.tasks[0];
+  const failRes = await request('POST', `/api/tasks/${task.id}/ci/result`, {
+    conclusion: 'failure',
+    errorSummary: 'Simulasi test gagal.'
+  });
+  assert.equal(failRes.status, 200);
+  assert.equal(failRes.data.task.status, 'ci_failed');
+
+  const firstFix = await request('POST', `/api/tasks/${task.id}/auto-fix`, { rawLog: 'Error 1', fixed: false });
+  const secondFix = await request('POST', `/api/tasks/${task.id}/auto-fix`, { rawLog: 'Error 2', fixed: false });
+  const thirdFix = await request('POST', `/api/tasks/${task.id}/auto-fix`, { rawLog: 'Error 3', fixed: false });
+  const fourthFix = await request('POST', `/api/tasks/${task.id}/auto-fix`, { rawLog: 'Error 4', fixed: false });
+
+  assert.equal(firstFix.status, 201);
+  assert.equal(secondFix.status, 201);
+  assert.equal(thirdFix.status, 201);
+  assert.equal(thirdFix.data.task.fixAttemptCount, 3);
+  assert.equal(thirdFix.data.task.status, 'failed');
+  assert.equal(fourthFix.status, 422);
+});
+
+test('QA report dan release plan dapat dibuat', async () => {
+  clearAutopilotDb();
+
+  const created = await createDemoProject();
+  const task = created.data.tasks[0];
+  const qaRes = await request('POST', `/api/tasks/${task.id}/qa-report`);
+  const releaseRes = await request('POST', `/api/projects/${created.data.project.id}/release-plan`);
+
+  assert.equal(qaRes.status, 201);
+  assert.equal(qaRes.data.qaReport.status, 'passed');
+  assert.equal(releaseRes.status, 201);
+  assert.equal(releaseRes.data.releasePlan.status, 'waiting_approval');
+  assert.equal(releaseRes.data.approval.type, 'deploy_production');
+});
+
+test('final report menampilkan maturity AUTO-2 sampai AUTO-5', async () => {
+  clearAutopilotDb();
+
+  const created = await createDemoProject();
+  const task = created.data.tasks[0];
+  await request('POST', `/api/tasks/${task.id}/github/open-pr`);
+  await request('POST', `/api/tasks/${task.id}/ci/result`, { conclusion: 'success' });
+  await request('POST', `/api/tasks/${task.id}/qa-report`);
+  await request('POST', `/api/projects/${created.data.project.id}/release-plan`);
+
+  const reportRes = await request('GET', `/api/projects/${created.data.project.id}/final-report`);
+
+  assert.equal(reportRes.status, 200);
+  assert.equal(reportRes.data.report.maturity.level2GitHubAutopilot, 'foundation_active');
+  assert.equal(reportRes.data.report.maturity.level4AutoQa, 'foundation_active');
+  assert.equal(reportRes.data.report.maturity.level5ReleaseAutopilot, 'waiting_approval_foundation');
 });
 
 test('approval gate bisa dibuat dari task dan task menjadi waiting_approval', async () => {
