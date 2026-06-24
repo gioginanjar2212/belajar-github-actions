@@ -1,0 +1,19 @@
+{
+  "name": "ayo-ginanjar-affiliate-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal brand website, digital affiliate catalog, blog CMS, admin panel, and click tracking MVP.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "test": "node --test tests/*.test.js",
+    "ci": "npm run seed && npm test"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {}
+}
